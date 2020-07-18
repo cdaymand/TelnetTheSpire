@@ -35,7 +35,7 @@ public class InvalidCommandException extends Exception {
             case MISSING_ARGUMENT:
                 return String.format("Argument missing in command \"%s\".%s", wholeCommand, this.message);
             case INVALID_ARGUMENT:
-                return String.format("Invalid argument %s in command \"%s\".", this.message, wholeCommand);
+                return String.format("Invalid argument in command \"%s\": %s.", wholeCommand, this.message);
             default:
                 return this.message;
         }
