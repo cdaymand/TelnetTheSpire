@@ -22,7 +22,7 @@ class  HandleClient extends Thread {
 	inputStream = new InputStreamReader( clientSocket.getInputStream());
 	input = new BufferedReader(inputStream);
 	output = new PrintWriter ( clientSocket.getOutputStream(),true);
-	output.println("Welcome to SlayTheCLI Server!");
+	output.println("Welcome to Telnet The Spire!");
     }
 
     public void sendMessage(String message)  {
