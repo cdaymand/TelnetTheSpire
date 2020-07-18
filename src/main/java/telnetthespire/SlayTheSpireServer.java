@@ -556,32 +556,21 @@ public class  SlayTheSpireServer implements Runnable {
 	description = description.replaceAll("!D!", colored(damage, ANSI_RED));
 	description = description.replaceAll("!B!", colored(block, ANSI_GREEN));
 	description = description.replaceAll("!M!", colored(magicNumber, ANSI_YELLOW));
-	String cardName = card.name;
-	switch(card.type) {
-	case ATTACK:
-	    cardName = colored(cardName, ANSI_RED);
-	    break;
-	case SKILL:
-	    cardName = colored(cardName, ANSI_GREEN);
-	    break;
-	case POWER:
-	    cardName = colored(cardName, ANSI_YELLOW);
-	    break;
-	case CURSE:
-	    cardName = colored(cardName, ANSI_PURPLE);
-	    break;
-	}   
+	String cardName = "[" + card.name + "]";
+	String cardType;
 	switch(card.rarity) {
 	case UNCOMMON:
-	    cardName = colored("[", ANSI_BLUE) + cardName + colored("] ", ANSI_BLUE);
+	    cardName = colored(cardName, ANSI_BLUE);
 	    break;
 	case RARE:
-	    cardName = colored("[", ANSI_YELLOW) + cardName + colored("] ", ANSI_YELLOW);
+	    cardName = colored(cardName, ANSI_YELLOW);
 	    break;
-	default:
-	    cardName = "[" + cardName + "] ";
 	}
-	cardText = cardName + removeTextFormatting(description) + "[" + cost + "]";
+	switch(card.type) {
+	case CURSE:
+	    cardName = colored(cardName, ANSI_PURPLE);
+	}
+	cardText = cardName + " [" + card.type  + "] " + removeTextFormatting(description) + "[" + cost + "]";
 	if(shop)
 	    cardText += " (" + card.price + "gold)";
 	return cardText;
