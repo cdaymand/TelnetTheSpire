@@ -506,7 +506,7 @@ public class  SlayTheSpireServer implements Runnable {
 	} else {
 	    sendMessage(colored("Game Over!", ANSI_RED));
 	}
-	sendMessage("Score: " + screenState.get("victory"));
+	sendMessage("Score: " + screenState.get("score"));
 	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
 	sendMessage("Class: " + gameState.get("class"));
 	sendMessage("Ascension level: " + gameState.get("ascension_level"));
