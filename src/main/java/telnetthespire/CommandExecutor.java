@@ -109,11 +109,15 @@ public class CommandExecutor {
             availableCommands.add("start");
         }
         if (isInDungeon()) {
+	    availableCommands.add("show");
             availableCommands.add("key");
             availableCommands.add("click");
             availableCommands.add("wait");
         }
         availableCommands.add("state");
+	availableCommands.add("disconnect");
+	availableCommands.add("exit");
+	availableCommands.add("help");
         return availableCommands;
     }
 
@@ -194,14 +198,15 @@ public class CommandExecutor {
     }
 
     private static void executePlayCommand(String[] tokens) throws InvalidCommandException {
+	String usage = "\nUsage: play card_index [monster_index]";
         if(tokens.length < 2) {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, "\nUsage: play card_index [monster_index]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, usage);
         }
         int card_index;
         try {
             card_index = Integer.parseInt(tokens[1]);
         } catch (NumberFormatException e) {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + "\nUsage: play card_index [monster_index]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + usage);
         }
         if(card_index == 0) {
             card_index = 10;
@@ -255,15 +260,16 @@ public class CommandExecutor {
     private static void executePotionCommand(String[] tokens) throws  InvalidCommandException {
         int potion_index;
         boolean use;
+	String usage = "\nUsage: potion use|discard potion_index [monster_index]";
         if (tokens.length < 3) {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, "\nUsage: potion use|discard potion_index [monster_index]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, usage);
         }
         if(tokens[1].equals("use")) {
             use = true;
         } else if (tokens[1].equals("discard")) {
             use = false;
         } else {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + "\nUsage: potion use|discard potion_index [monster_index]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + usage);
         }
         try {
             potion_index = Integer.parseInt(tokens[2]) - 1;
@@ -321,8 +327,9 @@ public class CommandExecutor {
     }
 
     private static void executeStartCommand(String[] tokens) throws InvalidCommandException {
+	String usage = "\nUsage: start ironclad|silent|defect|watcher [ascension_level] [seed]";
         if (tokens.length < 2) {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, "\nUsage: start ironclad|silent|defect|watcher [ascension_level] [seed]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.MISSING_ARGUMENT, usage);
         }
         int ascensionLevel = 0;
         boolean seedSet = false;
@@ -338,13 +345,13 @@ public class CommandExecutor {
             selectedClass = AbstractPlayer.PlayerClass.THE_SILENT;
         }
         if(selectedClass == null) {
-            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + "\nUsage: start ironclad|silent|defect|watcher [ascension_level] [seed]");
+            throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[1] + usage);
         }
         if(tokens.length >= 3) {
             try {
                 ascensionLevel = Integer.parseInt(tokens[2]);
             } catch (NumberFormatException e) {
-                throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[2] + "\nUsage: start ironclad|silent|defect|watcher [ascension_level] [seed]");
+                throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.INVALID_ARGUMENT, tokens[2] + usage);
             }
             if(ascensionLevel < 0 || ascensionLevel > 20) {
                 throw new InvalidCommandException(tokens, InvalidCommandException.InvalidCommandFormat.OUT_OF_BOUNDS, tokens[2]);

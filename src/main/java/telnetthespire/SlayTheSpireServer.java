@@ -29,8 +29,8 @@ public class  SlayTheSpireServer implements Runnable {
     private HashMap<String, Object> state;
     private ArrayList<String> availableCommands;
     private ArrayList<String> choiceList;
-    private Boolean inGame;
-    private Boolean inCombat;
+    public Boolean inGame;
+    public Boolean inCombat;
     private Vector<HandleClient> clients;
 
     public static final String ANSI_RESET = "\u001B[0m";
@@ -164,17 +164,10 @@ public class  SlayTheSpireServer implements Runnable {
 	    "\tWhen the CHOOSE command is available, you can directly enter ChoiceIndex|ChoiceName\n" +
 	    "\tA list of names for each choice is provided in the game state. If provided with a name, the first choice index with the matching name is selected.\n" +
 	    "\tGenerally, available at any point when PLAY is not available.\n" +
-	    "DECK\n" +
-	    "\tShow the player's deck (the upgrade's values are displayed between parenthesis for information).\n" +
-	    "\tOnly available when in game.\n" + "DRAW\n" +
-	    "\tShow the player's draw pile.\n" +
-	    "\tOnly available in combat.\n" +
-	    "DISCARD\n" +
-	    "\tShow the player's dicard pile.\n" +
-	    "\tOnly available in combat.\n" +
-	    "EXHAUST\n" +
-	    "\tShow the player's exhaust pile.\n" +
-	    "\tOnly available in combat.\n" +
+	    "SHOW commands|map|player|boss|deck|hand|draw|discard|exhaust\n" +
+	    "\tShow the selected category.\n" +
+	    "EXPLORE\n" +
+	    "\tAn exploration mode for the map for accessibility purpose.\n" +
 	    "END\n" +
 	    "\tEnds your turn.\n" +
 	    "\tOnly available when the end turn button is available, in combat.\n" +
@@ -214,32 +207,48 @@ public class  SlayTheSpireServer implements Runnable {
     }
 
     public void displayCommands(){
-	if (state.get("available_commands") != null) {
-	    String message = "";
-	    availableCommands = (ArrayList<String>) state.get("available_commands");
-	    for(String command: availableCommands)
-		message += "[" + command + "]";
-	    if(inCombat) {
-		message += "[draw][discard][exhaust]";
-	    }
-	    if(inGame) {
-		message += "[deck][map]";
-	    }
-	    message += "[disconnect][exit][help]";
-	    sendMessage("Avalaible commands: " + message);
-	    if(!inGame)
-		return;
-	    HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
-	    if(gameState.get("choice_list") != null) {
-		choiceList = (ArrayList<String>) gameState.get("choice_list");
-		sendMessage("Choices available:");
-		int i = 1;
-		for(String choice: choiceList) {
-		    sendMessage("\t" + String.valueOf(i) + ": " + removeTextFormatting(choice));
-		    i += 1;
-		}
+	if (state.get("available_commands") == null)
+	    return;
+	String message = "";
+	availableCommands = (ArrayList<String>) state.get("available_commands");
+	for(String command: availableCommands)
+	    message += "[" + command + "]";
+	sendMessage("Commands: " + message);
+    }
+
+    public void displayFooter() {
+	if (state.get("available_commands") == null)
+	    return;
+	availableCommands = (ArrayList<String>) state.get("available_commands");
+	if(!inGame){
+	    displayCommands();
+	    return;
+	}
+	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
+	if(gameState.get("choice_list") != null) {
+	    choiceList = (ArrayList<String>) gameState.get("choice_list");
+	    sendMessage("Choices:");
+	    int i = 1;
+	    for(String choice: choiceList) {
+		sendMessage("\t" + String.valueOf(i) + ": " + removeTextFormatting(choice));
+		i += 1;
 	    }
 	}
+	String commands = "";
+	if(availableCommands.contains("proceed"))
+	    commands += "[proceed]";
+	if(availableCommands.contains("confirm"))
+	    commands += "[confirm]";
+	if(availableCommands.contains("return"))
+	    commands += "[return]";
+	if(availableCommands.contains("skip"))
+	    commands += "[skip]";
+	if(availableCommands.contains("cancel"))
+	    commands += "[cancel]";
+	if(availableCommands.contains("leave"))
+	    commands += "[leave]";
+	if(!commands.equals(""))
+	    sendMessage("Special commands: " + commands);
     }
 
     public void displayState() {
@@ -260,12 +269,16 @@ public class  SlayTheSpireServer implements Runnable {
 	} else {
 	    inGame = false;
 	}
-	displayCommands();
+	displayFooter();
     }
 
-    public void displayGame() {
+    public void showBoss(){
 	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
-	sendMessage("Act boss: " + gameState.get("act_boss"));
+	sendMessage("Boss: " + gameState.get("act_boss"));
+    }
+
+    public void showPlayer(){
+	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
 	sendMessage("HP: " + gameState.get("current_hp") + "/" + gameState.get("max_hp"));
 	sendMessage("Relics:");
 	for(AbstractRelic relic: (ArrayList<AbstractRelic>) gameState.get("relics")) {
@@ -278,6 +291,10 @@ public class  SlayTheSpireServer implements Runnable {
 	    i += 1;
         }
 	sendMessage("Gold: " + gameState.get("gold"));
+    }
+
+    public void displayGame() {
+	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");	
 	if(gameState.get("combat_state") != null) {
 	    inCombat = true;
             displayCombat(gameState);
@@ -289,7 +306,7 @@ public class  SlayTheSpireServer implements Runnable {
 	    HashMap<String, Object> screenState = (HashMap<String, Object>) gameState.get("screen_state");
 	    switch (screenType) {
 	    case MAP:
-		displayMap();
+		sendMessage("MAP: Use \"show map\" or \"explore\"");
 		break;
 	    case EVENT:
 		displayEvent(screenState);
@@ -310,10 +327,11 @@ public class  SlayTheSpireServer implements Runnable {
 	sendMessage(playerString);
 	ArrayList<AbstractPower> powers = (ArrayList<AbstractPower>) player.get("powers");
 	if (powers.size() > 0) {
-	    sendMessage("Powers:");
+	    String powersText = "Powers: ";
 	    for(AbstractPower power: powers) {
-		sendMessage("[" + power.name + "]: " + removeTextFormatting(power.description));
+		powersText += "[" + power.name + " (" + power.amount + ")]";
 	    }
+	    sendMessage(powersText);
 	}
 	ArrayList<AbstractOrb> orbs = (ArrayList<AbstractOrb>) player.get("orbs");
 	if (orbs.size() > 0) {
@@ -379,14 +397,15 @@ public class  SlayTheSpireServer implements Runnable {
 	    sendMessage(monsterString);
 	    powers = (ArrayList<AbstractPower>) monster.get("powers");
 	    if (powers.size() > 0) {
-		sendMessage("Powers:");
-		for(AbstractPower power: powers) {
-		    sendMessage("[" + power.name + "]: " + removeTextFormatting(power.description));
-		}
+		String powersText = "Powers: ";
+		    for(AbstractPower power: powers) {
+			powersText += "[" + power.name + " (" + power.amount + ")]";
+		    }
+		sendMessage(powersText);
 	    }
 	}
 	sendMessage("Hand:");
-	showCards((ArrayList<AbstractCard>) combatState.get("hand"), 1, true, false, false);
+	showCards((ArrayList<AbstractCard>) combatState.get("hand"), 1, true, false, false, true);
 	String expectedDamagesText;
 	if(expectedDamages > 0) {
 	    expectedDamagesText = colored(String.valueOf(expectedDamages), ANSI_RED);
@@ -473,8 +492,7 @@ public class  SlayTheSpireServer implements Runnable {
     }
     
     public void displayMap() {
-	if(inGame)
-	    sendMessage(mapToString(AbstractDungeon.map, true));
+	sendMessage(mapToString(AbstractDungeon.map, true));
 	
     }
     public void displayEvent(HashMap<String, Object> screenState) {
@@ -488,15 +506,6 @@ public class  SlayTheSpireServer implements Runnable {
 		sb.replace(i, i + 1, "\n");
 	    }
 	    sendMessage("\n" + sb + "\n");
-	}
-	sendMessage("Options:");
-	for(HashMap<String, Object> option: (ArrayList<HashMap<String, Object>>) screenState.get("options")){
-	    String text = (String) option.get("text");
-	    if((Boolean) option.get("disabled")){
-		sendMessage(colored(text, ANSI_RED));
-	    } else{
-		sendMessage(colored(text, ANSI_GREEN));
-	    }
 	}
     }
 
@@ -513,7 +522,7 @@ public class  SlayTheSpireServer implements Runnable {
 	sendMessage("Seed: " + gameState.get("seed"));
     }
 
-    public static String showCard(AbstractCard card, Boolean showUpgrade, Boolean shop) {
+    public static String showCard(AbstractCard card, Boolean showUpgrade, Boolean shop, Boolean brief) {
 	String description, block, damage, magicNumber, cardText;
 	AbstractCard copy = null;
 	if(showUpgrade){
@@ -556,8 +565,8 @@ public class  SlayTheSpireServer implements Runnable {
 	description = description.replaceAll("!D!", colored(damage, ANSI_RED));
 	description = description.replaceAll("!B!", colored(block, ANSI_GREEN));
 	description = description.replaceAll("!M!", colored(magicNumber, ANSI_YELLOW));
-	String cardName = "[" + card.name + "]";
-	String cardType;
+	String cardName = card.name;
+	String cardType = String.valueOf(card.type);
 	switch(card.rarity) {
 	case UNCOMMON:
 	    cardName = colored(cardName, ANSI_BLUE);
@@ -569,21 +578,36 @@ public class  SlayTheSpireServer implements Runnable {
 	switch(card.type) {
 	case CURSE:
 	    cardName = colored(cardName, ANSI_PURPLE);
+	    cardType = colored(cardType, ANSI_PURPLE);
+	    break;
+	case ATTACK:
+	    cardType = colored(cardType, ANSI_RED);
+	    break;
+	case SKILL:
+	    cardType = colored(cardType, ANSI_GREEN);
+	    break;
+	case POWER:
+	    cardType = colored(cardType, ANSI_YELLOW);
+	    break;
 	}
-	cardText = cardName + " [" + card.type  + "] " + removeTextFormatting(description) + "[" + cost + "]";
+	if(brief)
+	    description = " ";
+	else
+	    description = " " + removeTextFormatting(description) + " ";
+	cardText = "[" + cardName + "(" + cardType + ")]" + description + "[" + cost + "]";
 	if(shop)
-	    cardText += " (" + card.price + "gold)";
+	    cardText += " (" + card.price + " gold)";
 	return cardText;
     }
     
-    public void showCards(ArrayList<AbstractCard> cards, int startingIndex, Boolean showIndex, Boolean showUpgrade, Boolean shop) {
+    public void showCards(ArrayList<AbstractCard> cards, int startingIndex, Boolean showIndex, Boolean showUpgrade, Boolean shop, Boolean brief) {
 	int i = startingIndex;
 	String cardText;
 	for(AbstractCard card: cards) {
 	    cardText = "";
 	    if(showIndex)
 		cardText += Integer.valueOf(i) + ": ";
-	    cardText += showCard(card, showUpgrade, shop);
+	    cardText += showCard(card, showUpgrade, shop, brief);
 	    sendMessage(cardText);
 	    i += 1;
 	}
@@ -595,22 +619,20 @@ public class  SlayTheSpireServer implements Runnable {
     }
 
     public void displayDeck() {
-	if(inGame)
-	    showCards(AbstractDungeon.player.masterDeck.group, 1, true, true, false);
+	showCards(AbstractDungeon.player.masterDeck.group, 1, true, true, false, false);
     }
     
     public void displayDraw() {
-	if(inCombat)
-	    showCards(AbstractDungeon.player.drawPile.group, 0, false, false, false);
+	showCards(AbstractDungeon.player.drawPile.group, 0, false, false, false, true);
     }
     public void displayDiscard() {
-	if(inCombat)
-	    showCards(AbstractDungeon.player.discardPile.group, 0, false, false, false);
+	showCards(AbstractDungeon.player.discardPile.group, 0, false, false, false, true);
     }
     public void displayExhaust() {
-	if(inCombat)
-	    showCards(AbstractDungeon.player.exhaustPile.group, 0, false, false, false);
+	showCards(AbstractDungeon.player.exhaustPile.group, 0, false, false, false, true);
     }
-			    
+    public void displayHand() {
+	showCards(AbstractDungeon.player.hand.group, 1, true, false, false, false);
+    }
 	    
 }

@@ -151,11 +151,7 @@ public class ChoiceScreenUtils {
             default:
                 return new ArrayList<>();
         }
-        ArrayList<String> lowerCaseChoices = new ArrayList<>();
-        for(String item : choices) {
-            lowerCaseChoices.add(item.toLowerCase());
-        }
-        return lowerCaseChoices;
+        return choices;
     }
 
     public static void executeChoice(int choice_index) {
@@ -380,7 +376,7 @@ public class ChoiceScreenUtils {
     public static ArrayList<String> getCardRewardScreenChoices() {
         ArrayList<String> choices = new ArrayList<>();
         for(AbstractCard card : AbstractDungeon.cardRewardScreen.rewardGroup) {
-            choices.add(SlayTheSpireServer.showCard(card, true, false));
+            choices.add(SlayTheSpireServer.showCard(card, true, false, false));
         }
         if(isBowlAvailable()) {
             choices.add("bowl");
@@ -593,7 +589,7 @@ public class ChoiceScreenUtils {
             if (item instanceof String) {
                 choices.add((String) item);
             } else if (item instanceof AbstractCard) {
-                choices.add(SlayTheSpireServer.showCard(((AbstractCard) item), true, true));
+                choices.add(SlayTheSpireServer.showCard(((AbstractCard) item), true, true, false));
             } else if (item instanceof StoreRelic) {
 		choices.add("relic: [" + ((StoreRelic)item).relic.name + "] " +
 			    SlayTheSpireServer.removeTextFormatting(((StoreRelic)item).relic.description) + "(" +
@@ -700,12 +696,35 @@ public class ChoiceScreenUtils {
         ArrayList<String> choices = new ArrayList<>();
         MapRoomNode currMapNode = AbstractDungeon.getCurrMapNode();
         if(bossNodeAvailable()) {
-            choices.add("boss");
+            choices.add("Boss!");
             return choices;
         }
         ArrayList<MapRoomNode> availableNodes = getMapScreenNodeChoices();
         for (MapRoomNode node: availableNodes) {
-            choices.add(String.format("x=%d", node.x).toLowerCase());
+	    String nodeSymbol = node.getRoomSymbol(true);
+	    switch(nodeSymbol) {
+	    case "M":
+		nodeSymbol = "Enemy";
+		break;
+	    case "E":
+		if(node.hasEmeraldKey)
+		    nodeSymbol = "Flaming elite";
+		else
+		    nodeSymbol = "Elite";
+		break;
+	    case "$":
+		nodeSymbol = "Merchant";
+		break;
+	    case "T":
+		nodeSymbol = "Treasure";
+		break;
+	    case "R":
+		nodeSymbol = "Rest";
+		break;
+	    case "?":
+		nodeSymbol = "Unknown";
+	    }
+            choices.add(nodeSymbol);
         }
         return choices;
     }
@@ -806,7 +825,7 @@ public class ChoiceScreenUtils {
 
         if (activeButtons.size() > 0) {
             for(LargeDialogOptionButton button : activeButtons) {
-                choiceList.add(getOptionName(button.msg).toLowerCase());
+		choiceList.add(SlayTheSpireServer.removeTextFormatting(button.msg));
             }
         } else if(AbstractDungeon.getCurrRoom().event instanceof GremlinWheelGame) {
             choiceList.add("spin");
