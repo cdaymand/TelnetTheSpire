@@ -702,6 +702,7 @@ public class ChoiceScreenUtils {
         ArrayList<MapRoomNode> availableNodes = getMapScreenNodeChoices();
         for (MapRoomNode node: availableNodes) {
 	    String nodeSymbol = node.getRoomSymbol(true);
+	    String coordinates = "(x=" + String.valueOf(node.x) + ", y=" + String.valueOf(node.y) + ") ";
 	    switch(nodeSymbol) {
 	    case "M":
 		nodeSymbol = "Enemy";
@@ -724,7 +725,7 @@ public class ChoiceScreenUtils {
 	    case "?":
 		nodeSymbol = "Unknown";
 	    }
-            choices.add(nodeSymbol);
+            choices.add(coordinates + nodeSymbol);
         }
         return choices;
     }
