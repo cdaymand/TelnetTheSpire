@@ -48,6 +48,7 @@ class  HandleClient extends Thread {
         ArrayList<MapRoomNode> availableNodes = getMapScreenNodeChoices();
         for (MapRoomNode node: availableNodes) {
 	    String nodeSymbol = node.getRoomSymbol(true);
+	    String coordinates = "(x=" + String.valueOf(node.x) + ", y=" + String.valueOf(node.y) + ") ";
 	    switch(nodeSymbol) {
 	    case "M":
 		nodeSymbol = "Enemy";
@@ -70,7 +71,7 @@ class  HandleClient extends Thread {
 	    case "?":
 		nodeSymbol = "Unknown";
 	    }
-            choices.add(nodeSymbol);
+            choices.add(coordinates + nodeSymbol);
         }
         return choices;
     }
@@ -79,7 +80,7 @@ class  HandleClient extends Thread {
         ArrayList<MapRoomNode> choices = new ArrayList<>();
         MapRoomNode exploreNode = nodeStack.peek();
         ArrayList<ArrayList<MapRoomNode>> map = AbstractDungeon.map;
-        if(exploreNode.y == -1) {
+        if(exploreNode.y == -1 || exploreNode.y == 15) {
             for(MapRoomNode node : map.get(0)) {
                 if (node.hasEdges()) {
                     choices.add(node);
@@ -102,7 +103,7 @@ class  HandleClient extends Thread {
     }
 
     public void explore(String command) {
-	String usage = SlayTheSpireServer.colored("Usage: quit|back|ROOM_INDEX", SlayTheSpireServer.ANSI_RED);
+	String usage = SlayTheSpireServer.colored("Usage: quit|back|RoomIndex", SlayTheSpireServer.ANSI_RED);
 	switch(command) {
 	case "explore":
 	    sendMessage("You are in exploration mode");
@@ -127,28 +128,24 @@ class  HandleClient extends Thread {
 	case "":
 	    return;
 	default:
-	    if(Character.isDigit(command.charAt(0))) {
-		int room_index;
-		try {
-		    room_index = Integer.parseInt(command);
-		} catch(NumberFormatException e) {
-		    sendMessage(usage);
-		    return;
-		}
-		room_index -= 1;
-		ArrayList<MapRoomNode> rooms = getMapScreenNodeChoices();
-		if (room_index < 0 || room_index >= rooms.size()){
-		    sendMessage(SlayTheSpireServer.colored("This room doesn't exist !", SlayTheSpireServer.ANSI_RED));
-		    return;
-		}
-		nodeStack.push(rooms.get(room_index));
-	    } else {
+	    int roomIndex;
+	    try {
+		roomIndex = Integer.parseInt(command);
+	    } catch(NumberFormatException e) {
 		sendMessage(usage);
 		return;
 	    }
+	    roomIndex -= 1;
+	    ArrayList<MapRoomNode> rooms = getMapScreenNodeChoices();
+	    if (roomIndex < 0 || roomIndex >= rooms.size()){
+		sendMessage(SlayTheSpireServer.colored("This room doesn't exist !", SlayTheSpireServer.ANSI_RED));
+		return;
+	    }
+	    nodeStack.push(rooms.get(roomIndex));
 	}
 	int i = 1;
-	sendMessage("Floor: " + String.valueOf(nodeStack.peek().y + 1));
+	String coordinates = "(x=" + String.valueOf(nodeStack.peek().x) + ", y=" + String.valueOf(nodeStack.peek().y) + ")";
+	sendMessage("Current room: " + coordinates);
 	for(String room: getMapScreenChoices()) {
 	    sendMessage("\t" + String.valueOf(i) + ": " + room);
 	    i += 1;
@@ -156,7 +153,8 @@ class  HandleClient extends Thread {
     }
 
     public void showCommandHelper(String command) {
-	String usage = SlayTheSpireServer.colored("Usage: show commands|map|player|deck|draw|discard|exhaust", SlayTheSpireServer.ANSI_RED);
+	String usage = SlayTheSpireServer.colored("Usage: show commands|map|health|relics|potions|gold|boss|deck|combat|draw|discard|exhaust\n" +
+						  "\tshow hand [CardIndex]", SlayTheSpireServer.ANSI_RED);
 	String notInGame = SlayTheSpireServer.colored("You are not in a game", SlayTheSpireServer.ANSI_RED);
 	String notInCombat = SlayTheSpireServer.colored("You are not in a combat", SlayTheSpireServer.ANSI_RED);
 	String [] tokens = command.split("\\s+");
@@ -174,9 +172,27 @@ class  HandleClient extends Thread {
 	    else
 		sendMessage(notInGame);
 	    break;
-	case "player":
+	case "health":
 	    if(server.inGame)
-		server.showPlayer();
+		server.showHealth();
+	    else
+		sendMessage(notInGame);
+	    break;
+	case "relics":
+	    if(server.inGame)
+		server.showRelics();
+	    else
+		sendMessage(notInGame);
+	    break;
+	case "potions":
+	    if(server.inGame)
+		server.showPotions();
+	    else
+		sendMessage(notInGame);
+	    break;
+	case "gold":
+	    if(server.inGame)
+		server.showGold();
 	    else
 		sendMessage(notInGame);
 	    break;
@@ -192,10 +208,25 @@ class  HandleClient extends Thread {
 	    else
 		sendMessage(notInGame);
 	    break;
-	case "hand":
+	case "combat":
 	    if(server.inCombat)
-		server.displayHand();
+		server.showCombat();
 	    else
+		sendMessage(notInCombat);
+	    break;
+	case "hand":
+	    if(server.inCombat) {
+		int cardIndex = -1;
+		if(tokens.length == 3) {
+		    try {
+			cardIndex = Integer.parseInt(tokens[2]);
+		    } catch(NumberFormatException e) {
+			sendMessage(usage);
+			return;
+		    }
+		}
+		server.displayHand(cardIndex);
+	    } else
 		sendMessage(notInCombat);
 	    break;
 	case "draw":
@@ -220,7 +251,16 @@ class  HandleClient extends Thread {
 	    sendMessage(usage);
 	}
     }
-		
+
+    public void removeClient() {
+	try {
+	    server.removeClient(this);
+	    inputStream.close();
+	} catch(IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
     public void run(){
 	String message;
 	try {
@@ -231,13 +271,13 @@ class  HandleClient extends Thread {
 	while(true) {
 	    try {
 		message = input.readLine();
-		message = message.toLowerCase();
 		logger.info("Command sent: " + message);
 		if ( message == null || message.equals("disconnect")) {
-		    server.removeClient(this);
-		    inputStream.close();
+		    removeClient();
 		    break;
-		} else if(message.equals("")) {
+		}
+		message = message.toLowerCase();
+		if(message.equals("")) {
 		    continue;
 		} else if(exploreMode) {
 		    explore(message);
@@ -262,9 +302,13 @@ class  HandleClient extends Thread {
 		    }
 		} else if(server.getChoiceList().contains(message))
 		    message = "choose " + message;
-			
+
 		if (server.getState().get("ready_for_command") != null && (Boolean) server.getState().get("ready_for_command"))
 		    server.getReadQueue().put(message);
+	    } catch(SocketException e) {
+		e.printStackTrace();
+		removeClient();
+		break;
 	    } catch(Exception e) {
 		sendMessage(SlayTheSpireServer.colored("Oups an error occured! Please retry your last command", SlayTheSpireServer.ANSI_RED));
 		e.printStackTrace();
