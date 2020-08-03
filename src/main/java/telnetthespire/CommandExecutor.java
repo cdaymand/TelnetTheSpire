@@ -281,6 +281,8 @@ public class CommandExecutor {
             if(target_monster == null) {
                 throw new InvalidCommandException("Selected card requires an enemy target.");
             }
+	    if (AbstractDungeon.player.hasPower("Surrounded"))
+		AbstractDungeon.player.flipHorizontal = (target_monster.drawX < AbstractDungeon.player.drawX);
             AbstractDungeon.actionManager.cardQueue.add(new CardQueueItem(card, target_monster));
         } else {
             AbstractDungeon.actionManager.cardQueue.add(new CardQueueItem(card, null));
