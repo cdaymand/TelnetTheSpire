@@ -299,7 +299,10 @@ public class  SlayTheSpireServer implements Runnable {
 	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
 	sendMessage("Relics:");
 	for(AbstractRelic relic: (ArrayList<AbstractRelic>) gameState.get("relics")) {
-            sendMessage("[" + relic.name + "]: " + removeTextFormatting(relic.description));
+	    String counterText = "";
+	    if(relic.counter != -1)
+		counterText = "(" + String.valueOf(relic.counter) + ")";
+            sendMessage("[" + relic.name + counterText + "]: " + removeTextFormatting(relic.description));
         }
     }
 
@@ -421,8 +424,8 @@ public class  SlayTheSpireServer implements Runnable {
 		" Intent: " + colored((String) monster.get("intent"), ANSI_YELLOW);
 	    if ((int) monster.get("move_adjusted_damage") > 0) {
 		expectedDamages += (int) monster.get("move_adjusted_damage") * (int) monster.get("move_hits");
-		monsterString += " Damage: " + monster.get("move_hits") +
-		    " * " + monster.get("move_adjusted_damage");
+		monsterString += " Damage: " + monster.get("move_adjusted_damage") +
+		    " * " + monster.get("move_hits");
 	    }
 	    sendMessage(monsterString);
 	    powers = (ArrayList<AbstractPower>) monster.get("powers");
