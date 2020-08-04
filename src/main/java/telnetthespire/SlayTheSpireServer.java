@@ -7,6 +7,7 @@ import com.megacrit.cardcrawl.orbs.AbstractOrb;
 import com.megacrit.cardcrawl.stances.AbstractStance;
 import com.megacrit.cardcrawl.monsters.AbstractMonster;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.cards.CardGroup;
 import com.megacrit.cardcrawl.cards.DescriptionLine;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.map.MapEdge;
@@ -668,7 +669,14 @@ public class  SlayTheSpireServer implements Runnable {
     }
     
     public void displayDraw() {
-	showCards(AbstractDungeon.player.drawPile.group, 0, false, false, false, true);
+	CardGroup drawPileCopy = new CardGroup(CardGroup.CardGroupType.UNSPECIFIED);
+	for (AbstractCard c : AbstractDungeon.player.drawPile.group)
+	    drawPileCopy.addToBottom(c);
+	if (!AbstractDungeon.player.hasRelic("Frozen Eye")) {
+	    drawPileCopy.sortAlphabetically(true);
+	    drawPileCopy.sortByRarityPlusStatusCardType(true);
+	}
+	showCards(drawPileCopy.group, 0, false, false, false, true);
     }
     public void displayDiscard() {
 	showCards(AbstractDungeon.player.discardPile.group, 0, false, false, false, true);
