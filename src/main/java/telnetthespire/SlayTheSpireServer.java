@@ -562,7 +562,7 @@ public class  SlayTheSpireServer implements Runnable {
 	String description, block, damage, magicNumber, cardText;
 	AbstractCard copy = null;
 	if(showUpgrade){
-	    copy = card.makeCopy();
+	    copy = card.makeStatEquivalentCopy();
 	    copy.upgrade();
 	}
 	if (card.isBlockModified) {
