@@ -11,6 +11,7 @@ import com.megacrit.cardcrawl.rooms.VictoryRoom;
 public class GameStateListener {
     private static AbstractDungeon.CurrentScreen previousScreen = null;
     private static boolean previousScreenUp = false;
+    private static boolean previousConfirmScreenUp = false;
     private static AbstractRoom.RoomPhase previousPhase = null;
     private static int previousGold = 99;
     private static boolean externalChange = false;
@@ -80,6 +81,7 @@ public class GameStateListener {
     public static void resetStateVariables() {
         previousScreen = null;
         previousScreenUp = false;
+	previousConfirmScreenUp = false;
         previousPhase = null;
         previousGold = 99;
         externalChange = false;
@@ -101,6 +103,7 @@ public class GameStateListener {
         hasPresentedOutOfGameState = false;
         AbstractDungeon.CurrentScreen newScreen = AbstractDungeon.screen;
         boolean newScreenUp = AbstractDungeon.isScreenUp;
+	boolean newConfirmScreenUp = AbstractDungeon.screen.equals(AbstractDungeon.CurrentScreen.GRID) && AbstractDungeon.gridSelectScreen.confirmScreenUp;
         AbstractRoom.RoomPhase newPhase = AbstractDungeon.getCurrRoom().phase;
         boolean inCombat = (newPhase == AbstractRoom.RoomPhase.COMBAT);
         // Lots of stuff can happen while the dungeon is fading out, but nothing that requires input from the user.
@@ -131,7 +134,7 @@ public class GameStateListener {
         }
         // The state has always changed in some way when one of these variables is different.
         // However, the state may not be finished changing, so we need to do some additional checks.
-        if (newScreen != previousScreen || newScreenUp != previousScreenUp || newPhase != previousPhase) {
+        if (newScreen != previousScreen || newScreenUp != previousScreenUp || newPhase != previousPhase || newConfirmScreenUp != previousConfirmScreenUp) {
             if (inCombat) {
                 // In combat, newScreenUp being true indicates an action that requires our immediate attention.
                 if (newScreenUp) {
@@ -150,6 +153,7 @@ public class GameStateListener {
                 previousScreenUp = newScreenUp;
                 previousScreen = newScreen;
                 previousPhase = newPhase;
+		previousConfirmScreenUp = newConfirmScreenUp;
                 return false;
             }
         } else if (waitOneUpdate) {
@@ -224,6 +228,7 @@ public class GameStateListener {
                 previousScreen = AbstractDungeon.screen;
                 previousScreenUp = AbstractDungeon.isScreenUp;
                 previousGold = AbstractDungeon.player.gold;
+		previousConfirmScreenUp = AbstractDungeon.screen.equals(AbstractDungeon.CurrentScreen.GRID) && AbstractDungeon.gridSelectScreen.confirmScreenUp;
                 timeout = 0;
             }
         } else {
