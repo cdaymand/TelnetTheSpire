@@ -52,7 +52,7 @@ public class  SlayTheSpireServer implements Runnable {
 	else
 	    return string;
     }
-    
+
     public SlayTheSpireServer(int port,
 			      int backlog,
 			      String host,
@@ -106,7 +106,7 @@ public class  SlayTheSpireServer implements Runnable {
     public void removeClient(HandleClient client) {
 	clients.remove(client);
     }
-    
+
     public void run() {
 	try {
 	    ServerSocket server = new ServerSocket(port, backlog, InetAddress.getByName(host));
@@ -276,7 +276,7 @@ public class  SlayTheSpireServer implements Runnable {
 		    e.printStackTrace();
 		}
 		return;
-	    }		    
+	    }
 	    inGame = true;
 	    displayGame();
 	} else {
@@ -325,7 +325,7 @@ public class  SlayTheSpireServer implements Runnable {
 	displayCombat(gameState, false);
     }
     public void displayGame() {
-	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");	
+	HashMap<String, Object> gameState = (HashMap<String, Object>) state.get("game_state");
 	if(gameState.get("combat_state") != null) {
 	    inCombat = true;
             displayCombat(gameState, true);
@@ -345,7 +345,13 @@ public class  SlayTheSpireServer implements Runnable {
 	    case GAME_OVER:
 		displayGameOver(screenState);
 		break;
+	    case GRID:
+		if(AbstractDungeon.gridSelectScreen.confirmScreenUp && AbstractDungeon.gridSelectScreen.forUpgrade) {
+		    sendMessage(showCard(AbstractDungeon.gridSelectScreen.upgradePreviewCard, false, false, false));
+		}
+		break;
 	    }
+
 	}
     }
 
@@ -450,14 +456,14 @@ public class  SlayTheSpireServer implements Runnable {
 	    expectedDamagesText = colored(String.valueOf(expectedDamages), ANSI_GREEN);
 	}
 	sendMessage("Expected damages: " +  expectedDamagesText);
-	String energy = ((int) player.get("energy") > 0) ? colored(String.valueOf(player.get("energy")), ANSI_GREEN) : colored(String.valueOf(player.get("energy")), ANSI_RED); 
+	String energy = ((int) player.get("energy") > 0) ? colored(String.valueOf(player.get("energy")), ANSI_GREEN) : colored(String.valueOf(player.get("energy")), ANSI_RED);
 	sendMessage("Remaining Energy: " + energy);
     }
 
     private static String paddingGenerator(int length) {
 	StringBuilder str = new StringBuilder();
 	for (int i = 0; i < length; i++)
-	    str.append(" "); 
+	    str.append(" ");
 	return str.toString();
     }
 
@@ -479,12 +485,12 @@ public class  SlayTheSpireServer implements Runnable {
 	case "T":
 	    nodeSymbol = colored(nodeSymbol, ANSI_YELLOW);
 	    break;
-	    
+
 	case "R":
 	    nodeSymbol = colored(nodeSymbol, ANSI_CYAN);
 	    break;
 	}
-	return nodeSymbol;	
+	return nodeSymbol;
     }
 
     public static String mapToString(ArrayList<ArrayList<MapRoomNode>> nodes, Boolean showRoomSymbols) {
@@ -497,14 +503,14 @@ public class  SlayTheSpireServer implements Runnable {
 		String right = " ", mid = right, left = mid;
 		for (MapEdge edge : node.getEdges()) {
 		    if (edge.dstX < node.x)
-			left = "\\"; 
+			left = "\\";
 		    if (edge.dstX == node.x)
-			mid = "|"; 
+			mid = "|";
 		    if (edge.dstX > node.x)
-			right = "/"; 
-		} 
+			right = "/";
+		}
 		str.append(left).append(mid).append(right);
-	    } 
+	    }
 	    str.append("\n").append(row_num).append(" ");
 	    str.append(paddingGenerator(left_padding_size - String.valueOf(row_num).length()));
 	    for (MapRoomNode node : nodes.get(row_num)) {
@@ -515,22 +521,22 @@ public class  SlayTheSpireServer implements Runnable {
 			    if (edge.dstX == node.x) {
 				nodeSymbol = node.getRoomSymbol(showRoomSymbols);
 			    }
-			} 
-		    } 
+			}
+		    }
 		} else if (node.hasEdges()) {
 		    nodeSymbol = node.getRoomSymbol(showRoomSymbols);
-		} 
+		}
 		str.append(" ").append(colorNodeSymbol(node, nodeSymbol)).append(" ");
-	    } 
+	    }
 	    row_num--;
 	}
 	str.append("\n");
 	return str.toString();
     }
-    
+
     public void displayMap() {
 	sendMessage(mapToString(AbstractDungeon.map, true));
-	
+
     }
     public void displayEvent(HashMap<String, Object> screenState) {
 	sendMessage("Event: " + screenState.get("event_name"));
@@ -562,6 +568,7 @@ public class  SlayTheSpireServer implements Runnable {
     public static String showCard(AbstractCard card, Boolean showUpgrade, Boolean shop, Boolean brief) {
 	String description, block, damage, magicNumber, cardText;
 	AbstractCard copy = null;
+	showUpgrade = false;
 	if(showUpgrade){
 	    copy = card.makeStatEquivalentCopy();
 	    copy.upgrade();
@@ -587,17 +594,18 @@ public class  SlayTheSpireServer implements Runnable {
 	    if(copy != null && card.baseMagicNumber != copy.baseMagicNumber)
 		magicNumber += "(" + Integer.toString(copy.baseMagicNumber) + ")";
 	}
-	String cost = "Cost: ";
-	if ((int) card.cost == 0)
-	    cost += colored(String.valueOf(card.cost), ANSI_GREEN);
-	else if(card.cost == -1)
-	    cost += "X";
+	String cost;
+	if(card.cost == -1)
+	    cost = "X";
 	else if(card.cost == -2)
-	    cost = "UNPLAYABLE" ;
+	    cost = "UNPLAYABLE";
+	else if(card.freeToPlay())
+	    cost = "0";
 	else
-	    cost += String.valueOf(card.cost);
-	if(copy != null && card.cost != copy.cost)
-	    cost += "(" + Integer.toString(copy.cost) + ")";
+	    cost = Integer.toString(card.costForTurn);
+	if(cost.equals("0"))
+	    cost = colored(cost, ANSI_GREEN);
+	cost = "Cost: " + cost;
 	description = card.rawDescription;
 	description = description.replaceAll("!D!", colored(damage, ANSI_RED));
 	description = description.replaceAll("!B!", colored(block, ANSI_GREEN));
@@ -636,7 +644,7 @@ public class  SlayTheSpireServer implements Runnable {
 	    cardText += " (" + card.price + " gold)";
 	return cardText;
     }
-    
+
     public void showCards(ArrayList<AbstractCard> cards, int startingIndex, Boolean showIndex, Boolean showUpgrade, Boolean shop, Boolean brief) {
 	int i = startingIndex;
 	String cardText, cardResult;
@@ -667,7 +675,7 @@ public class  SlayTheSpireServer implements Runnable {
     public void displayDeck() {
 	showCards(AbstractDungeon.player.masterDeck.group, 1, true, true, false, false);
     }
-    
+
     public void displayDraw() {
 	CardGroup drawPileCopy = new CardGroup(CardGroup.CardGroupType.UNSPECIFIED);
 	for (AbstractCard c : AbstractDungeon.player.drawPile.group)
