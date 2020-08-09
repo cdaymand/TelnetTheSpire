@@ -349,6 +349,12 @@ public class  SlayTheSpireServer implements Runnable {
 		if(AbstractDungeon.gridSelectScreen.confirmScreenUp && AbstractDungeon.gridSelectScreen.forUpgrade) {
 		    sendMessage(showCard(AbstractDungeon.gridSelectScreen.upgradePreviewCard, false, false, false));
 		}
+		if(AbstractDungeon.gridSelectScreen.selectedCards.size() > 0){
+		    String selected = "Selected: ";
+		    for(AbstractCard card: AbstractDungeon.gridSelectScreen.selectedCards)
+			selected += "[" + card.name + "] ";
+		    sendMessage(selected);
+		}
 		break;
 	    }
 
